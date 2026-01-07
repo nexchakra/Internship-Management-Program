@@ -4,18 +4,18 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Env
+# Environment variables
 .env
 .env.local
 
-# Build
+# Build outputs
 dist/
 build/
 
 # TypeScript
 *.tsbuildinfo
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
