@@ -31,6 +31,7 @@ export interface Company {
 }
 
 export interface Internship {
+  applyLink: string;
   id: string;
   title: string;
   company: Company;

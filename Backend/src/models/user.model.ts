@@ -1,9 +1,17 @@
-export type Role = "ADMIN" | "STUDENT";
+import mongoose, { Schema } from "mongoose";
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: Role;
-}
+const UserSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: {
+      type: String,
+      enum: ["STUDENT", "ADMIN"],
+      default: "STUDENT",
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("User", UserSchema);

@@ -1,18 +1,52 @@
 import { Request, Response } from "express";
-import { memoryStore } from "../storage/memory.store";
-import { v4 as uuid } from "uuid";
+import Internship from "../models/internship.model";
 
-export const createInternship = (req: Request, res: Response) => {
-  const internship = {
-    id: uuid(),
-    title: req.body.title,
-    company: req.body.company
-  };
+/**
+ * ADMIN: Create Internship
+ */
+export const createInternship = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const {
+      title,
+      companyName,
+      jobId,
+      applyType,
+      applyLink,
+      description,
+    } = req.body;
 
-  memoryStore.internships.push(internship);
-  res.json(internship);
+    const internship = await Internship.create({
+      title,
+      companyName,
+      jobId,
+      applyType,
+      applyLink,
+      description,
+    });
+
+    return res.status(201).json(internship);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
-export const listInternships = (req: Request, res: Response) => {
-  res.json(memoryStore.internships);
+/**
+ * STUDENT / ADMIN: List internships
+ */
+export const listInternships = async (
+  _req: Request,
+  res: Response
+) => {
+  try {
+    const internships = await Internship.find().sort({
+      createdAt: -1,
+    });
+
+    return res.json(internships);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
 };

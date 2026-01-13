@@ -69,4 +69,22 @@ app.patch(
   appCtrl.updateStatus
 );
 
+
+/* -------------------- ADMIN ROUTES -------------------- */
+
+// ✅ ADD THIS
+app.get(
+  "/api/applications",
+  auth,
+  isAdmin,
+  appCtrl.getAllApplications
+);
+
+app.patch(
+  "/api/applications/:id",
+  auth,
+  isAdmin,
+  appCtrl.updateStatus
+);
+
 export default app;

@@ -1,133 +1,114 @@
+import { Switch, Route, useLocation } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Students from "./pages/Students";
-import Internships from "./pages/Internships";
-import Applications from "./pages/Applications";
-import Companies from "./pages/Companies";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
+import { AuthProvider, useAuth } from "@/hooks/use.auth";
+import { Navbar } from "@/components/layout/Navbar";
+import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
-import { checkHealth } from "@/api/health";
 
+// Auth & Public Pages
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
+import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+// Student Pages
+import StudentDashboard from "@/pages/student/Dashboard";
+import InternshipList from "@/pages/student/InternshipList";
+import StudentApplications from "@/pages/student/Applications";
 
-// Protected Route wrapper
-const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({
-  children,
-  adminOnly = false,
-}) => {
-  const { isAuthenticated, user } = useAuth();
+// Admin Pages
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import ManageInternships from "@/pages/admin/ManageInternships";
+import AdminApplications from "@/pages/admin/AdminApplications";
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (adminOnly && user?.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
+function ProtectedRoute({ component: Component, allowedRoles }: { component: any, allowedRoles: string[] }) {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    checkHealth()
-      .then((data) => {
-        console.log("✅ BACKEND CONNECTED:", data);
-      })
-      .catch((err) => {
-        console.error("❌ BACKEND ERROR:", err);
-      });
-  }, []);
+    if (!isLoading && !user) {
+      setLocation("/login");
+    } else if (!isLoading && user && !allowedRoles.includes(user.role)) {
+      if (user.role === "ADMIN") setLocation("/admin/dashboard");
+      else setLocation("/dashboard");
+    }
+  }, [user, isLoading, allowedRoles, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !allowedRoles.includes(user.role)) {
+    return null;
+  }
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/students"
-        element={
-          <ProtectedRoute adminOnly>
-            <Students />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/internships"
-        element={
-          <ProtectedRoute>
-            <Internships />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/applications"
-        element={
-          <ProtectedRoute>
-            <Applications />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/companies"
-        element={
-          <ProtectedRoute adminOnly>
-            <Companies />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <Navbar />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Component />
+      </main>
+    </>
   );
-};
+}
 
+function RedirectToLogin() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation("/login");
+  }, [setLocation]);
+  return null;
+}
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
+function Router() {
+  return (
+    <Switch>
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      
+      {/* Student Routes */}
+      <Route path="/dashboard">
+        {() => <ProtectedRoute component={StudentDashboard} allowedRoles={["STUDENT"]} />}
+      </Route>
+      <Route path="/internships">
+        {() => <ProtectedRoute component={InternshipList} allowedRoles={["STUDENT"]} />}
+      </Route>
+      <Route path="/applications">
+        {() => <ProtectedRoute component={StudentApplications} allowedRoles={["STUDENT"]} />}
+      </Route>
+
+      {/* Admin Routes */}
+      <Route path="/admin/dashboard">
+        {() => <ProtectedRoute component={AdminDashboard} allowedRoles={["ADMIN"]} />}
+      </Route>
+      <Route path="/admin/internships">
+        {() => <ProtectedRoute component={ManageInternships} allowedRoles={["ADMIN"]} />}
+      </Route>
+      <Route path="/admin/applications">
+        {() => <ProtectedRoute component={AdminApplications} allowedRoles={["ADMIN"]} />}
+      </Route>
+
+      <Route path="/" component={RedirectToLogin} />
+
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router />
         <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

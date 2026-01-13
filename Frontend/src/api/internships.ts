@@ -1,11 +1,11 @@
-import api from './axios';
+import api from "./axios";
 
 export const fetchInternships = async () => {
-  const res = await api.get('/api/internships');
-  return res.data;
+  const { data } = await api.get("/api/internships");
+  return data;
 };
 
-export const createInternship = async (data: any) => {
-  const res = await api.post('/api/internships', data);
-  return res.data;
+export const createInternship = async (payload: any) => {
+  const { data } = await api.post("/api/internships", payload);
+  return data;
 };

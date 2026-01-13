@@ -1,45 +1,65 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const SECRET = "demo-secret";
-
-export interface AuthRequest extends Request {
-  user?: any;
-}
-
+/**
+ * AUTH MIDDLEWARE
+ * Verifies JWT and attaches user to request
+ */
 export const auth = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "No token" });
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "No token" });
+  }
+
+  const token = authHeader.split(" ")[1];
 
   try {
-    req.user = jwt.verify(token, SECRET);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    );
+
+    // req.user already exists via global type augmentation
+    (req as any).user = decoded;
+
     next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });
   }
 };
 
+/**
+ * ADMIN GUARD
+ */
 export const isAdmin = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (req.user?.role !== "admin") {
+  const user = (req as any).user;
+
+  if (!user || user.role !== "ADMIN") {
     return res.status(403).json({ message: "Admin only" });
   }
   next();
 };
 
+/**
+ * STUDENT GUARD
+ */
 export const isStudent = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (req.user?.role !== "student") {
+  const user = (req as any).user;
+
+  if (!user || user.role !== "STUDENT") {
     return res.status(403).json({ message: "Student only" });
   }
   next();
